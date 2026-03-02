@@ -1,7 +1,4 @@
---[[  SCAN & HOOK TOOL  v3.6  (SimpleSpy Hook UI)
-  Fix v3.6: cache-only __namecall, không dùng :IsA() trong hook
-  Hook Tab: SimpleSpy-style - list bên trái, code viewer bên phải
-]]
+--[[  Kelza SPY ]]
 
 local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
@@ -18,7 +15,7 @@ local knownR,pendingR={},{}
 local selR,decompiledSource,diffSnap,scriptCache=nil,"",nil,{}
 local spActive,spCnt,multiActive=false,0,false
 
--- SimpleSpy state
+-- Kelza Spy state
 local callLog={}        -- list of {n, t, a, ts}
 local selCall=nil       -- currently selected call entry
 local excludeSet={}     -- remote names to hide
@@ -95,7 +92,7 @@ local function mkSF(p,sz,pos) local s=Instance.new("ScrollingFrame",p); s.Size=s
 local function mkRow(p,y,h) local bar=mkF(p,BG,UDim2.new(1,-8,0,h),UDim2.new(0,4,0,y)); bar.BackgroundTransparency=1; local ll=Instance.new("UIListLayout",bar); ll.FillDirection=Enum.FillDirection.Horizontal; ll.Padding=UDim.new(0,4); ll.VerticalAlignment=Enum.VerticalAlignment.Center; return function(t,bg) local b=mkB(bar,t,bg,UDim2.new(0,0,0,h-4)); b.AutomaticSize=Enum.AutomaticSize.X; local pd=Instance.new("UIPadding",b); pd.PaddingLeft=UDim.new(0,8); pd.PaddingRight=UDim.new(0,8); return b end end
 
 -- ================================================================
--- LOG WIDGET (dùng cho Scan, Spam, Decompile, Players, Executor)
+-- LOG WIDGET
 -- ================================================================
 local LINE_H=13; local CHUNK_SIZE=300
 local function mkLog(p,sz,pos)
@@ -245,7 +242,7 @@ simBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ================================================================
--- TAB 2: HOOK  ←  SimpleSpy style
+-- TAB 2: HOOK
 -- ================================================================
 local hP=mkTab("Hook")
 
@@ -788,19 +785,6 @@ plSelf.MouseButton1Click:Connect(function() plLog.clear(); plLog.header("Self");
 plLead.MouseButton1Click:Connect(function() plLog.clear(); plLog.header("Leaderstats"); for _,p in ipairs(Players:GetPlayers()) do local ls=p:FindFirstChild("leaderstats"); if ls then plLog.add(p.Name); for _,v in ipairs(ls:GetChildren()) do plLog.add("  "..v.Name.."="..tostring(v.Value)) end end end; plLog.flush() end)
 plAttr.MouseButton1Click:Connect(function() plLog.clear(); plLog.header("Attributes"); for _,p in ipairs(Players:GetPlayers()) do local n=0; for _ in pairs(p:GetAttributes()) do n=n+1 end; if n>0 then plLog.add(p.Name); for k,v in pairs(p:GetAttributes()) do plLog.add("  "..k.."="..tostring(v)) end end end; plLog.flush() end)
 plCp.MouseButton1Click:Connect(function() plLog.copy() end); plCl.MouseButton1Click:Connect(function() plLog.clear() end)
-
--- ================================================================
--- TAB 6: EXECUTOR
--- ================================================================
-local exP=mkTab("Executor"); local exLog=mkLog(exP,UDim2.new(1,-8,1,-38),UDim2.new(0,4,0,34))
-local exRow=mkRow(exP,4,26); local exChk=exRow("Run Check",Color3.fromRGB(20,75,42)); local exCp=exRow("Copy",Color3.fromRGB(12,55,55)); local exCl=exRow("Clear",Color3.fromRGB(50,10,10))
-local APIS={{"getrawmetatable",function() return type(getrawmetatable(game))=="table" end},{"setreadonly",function() local m=getrawmetatable(game);setreadonly(m,false);setreadonly(m,true);return true end},{"getnamecallmethod",function() return type(getnamecallmethod)=="function" end},{"newcclosure",function() return type(newcclosure)=="function" end},{"setclipboard",function() setclipboard("t");return true end},{"decompile",function() return type(decompile)=="function" end},{"getscriptbytecode",function() return type(getscriptbytecode)=="function" end},{"gethui",function() return gethui()~=nil end},{"hookfunction",function() return type(hookfunction)=="function" end},{"loadstring",function() return type(loadstring)=="function" end},{"Drawing",function() return type(Drawing)=="table" end},{"firesignal",function() return type(firesignal)=="function" end}}
-exChk.MouseButton1Click:Connect(function()
-    exLog.clear(); exLog.header("Executor Check"); local pass=0
-    for _,ck in ipairs(APIS) do local ok,r=pcall(ck[2]); if ok and r then exLog.add("[OK] "..ck[1]); pass=pass+1 else exLog.add("[--] "..ck[1]) end end
-    exLog.add(""); exLog.add("Result: "..pass.."/"..#APIS); exLog.flush(); setSt(pass.."/"..#APIS)
-end)
-exCp.MouseButton1Click:Connect(function() exLog.copy() end); exCl.MouseButton1Click:Connect(function() exLog.clear() end)
 
 -- ================================================================
 -- START
