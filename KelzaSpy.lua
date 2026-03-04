@@ -1,3 +1,5 @@
+--[[  Kelza Spy TOOL ]]
+
 local Players=game:GetService("Players")
 local RS=game:GetService("ReplicatedStorage")
 local WS=game:GetService("Workspace")
@@ -13,7 +15,7 @@ local knownR,pendingR={},{}
 local selR,decompiledSource,diffSnap,scriptCache=nil,"",nil,{}
 local spActive,spCnt,multiActive=false,0,false
 
--- KelzaSpy state
+-- SimpleSpy state
 local callLog={}        -- list of {n, t, a, ts}
 local selCall=nil       -- currently selected call entry
 local excludeSet={}     -- remote names to hide
@@ -71,8 +73,110 @@ local TBar=Instance.new("Frame",WIN); TBar.Size=UDim2.new(1,0,0,40); TBar.Backgr
 local TBarFix=Instance.new("Frame",TBar); TBarFix.Size=UDim2.new(1,0,0.5,0); TBarFix.Position=UDim2.new(0,0,0.5,0); TBarFix.BackgroundColor3=BG1; TBarFix.BorderSizePixel=0
 local titleL=Instance.new("TextLabel",TBar); titleL.Text="Kelza Spy"; titleL.Size=UDim2.new(0,230,1,0); titleL.Position=UDim2.new(0,12,0,0); titleL.BackgroundTransparency=1; titleL.TextColor3=TXT; titleL.Font=Enum.Font.GothamBold; titleL.TextSize=13; titleL.TextXAlignment=Enum.TextXAlignment.Left; titleL.RichText=false
 local stBar=Instance.new("TextLabel",TBar); stBar.Size=UDim2.new(0,240,0,20); stBar.Position=UDim2.new(1,-340,0.5,-10); stBar.BackgroundColor3=BG2; stBar.BorderSizePixel=0; stBar.TextColor3=TXT1; stBar.Font=Enum.Font.Gotham; stBar.TextSize=10; stBar.Text="Ready"; stBar.TextXAlignment=Enum.TextXAlignment.Left; stBar.RichText=false; Instance.new("UICorner",stBar).CornerRadius=UDim.new(0,10); local _p=Instance.new("UIPadding",stBar); _p.PaddingLeft=UDim.new(0,8)
+local minBtn=Instance.new("TextButton",TBar); minBtn.Text="—"; minBtn.Size=UDim2.new(0,28,0,28); minBtn.Position=UDim2.new(1,-66,0.5,-14); minBtn.BackgroundColor3=Color3.fromRGB(40,40,60); minBtn.TextColor3=TXT; minBtn.Font=Enum.Font.GothamBold; minBtn.TextSize=14; minBtn.BorderSizePixel=0; minBtn.RichText=false; Instance.new("UICorner",minBtn).CornerRadius=UDim.new(0,6)
 local xBtn=Instance.new("TextButton",TBar); xBtn.Text="X"; xBtn.Size=UDim2.new(0,28,0,28); xBtn.Position=UDim2.new(1,-34,0.5,-14); xBtn.BackgroundColor3=Color3.fromRGB(170,38,38); xBtn.TextColor3=TXT; xBtn.Font=Enum.Font.GothamBold; xBtn.TextSize=12; xBtn.BorderSizePixel=0; xBtn.RichText=false; Instance.new("UICorner",xBtn).CornerRadius=UDim.new(0,6)
 xBtn.MouseButton1Click:Connect(function() SG:Destroy() end)
+local minimized=false
+local fullH=UDim2.new(0,860,0,580)
+local miniH=UDim2.new(0,860,0,40)
+
+-- Nút nổi toggle (luôn hiện kể cả khi minimize)
+local toggleBtn=Instance.new("TextButton",SG)
+toggleBtn.Text="SPY"
+toggleBtn.Size=UDim2.new(0,38,0,22)
+toggleBtn.Position=UDim2.new(0,8,0,8)
+toggleBtn.BackgroundColor3=Color3.fromRGB(28,28,55)
+toggleBtn.TextColor3=TXT
+toggleBtn.Font=Enum.Font.GothamBold
+toggleBtn.TextSize=9
+toggleBtn.BorderSizePixel=0
+toggleBtn.RichText=false
+toggleBtn.Active=true
+toggleBtn.Draggable=true
+Instance.new("UICorner",toggleBtn).CornerRadius=UDim.new(0,5)
+toggleBtn.Visible=false
+
+-- Keybind state
+local boundKey=Enum.KeyCode.RightShift
+local binding=false
+
+-- Keybind UI trong titlebar
+local kbLbl=Instance.new("TextLabel",TBar)
+kbLbl.Text="Key:"
+kbLbl.Size=UDim2.new(0,28,0,20)
+kbLbl.Position=UDim2.new(0,240,0.5,-10)
+kbLbl.BackgroundTransparency=1
+kbLbl.TextColor3=TXT2
+kbLbl.Font=Enum.Font.Gotham
+kbLbl.TextSize=9
+kbLbl.RichText=false
+
+local kbBtn=Instance.new("TextButton",TBar)
+kbBtn.Text="RightShift"
+kbBtn.Size=UDim2.new(0,80,0,22)
+kbBtn.Position=UDim2.new(0,270,0.5,-11)
+kbBtn.BackgroundColor3=BG3
+kbBtn.TextColor3=AMBER
+kbBtn.Font=Enum.Font.GothamBold
+kbBtn.TextSize=9
+kbBtn.BorderSizePixel=0
+kbBtn.RichText=false
+Instance.new("UICorner",kbBtn).CornerRadius=UDim.new(0,4)
+
+-- Click vào kbBtn để bắt đầu bind
+kbBtn.MouseButton1Click:Connect(function()
+    if binding then return end
+    binding=true
+    kbBtn.Text="[Press key]"
+    kbBtn.BackgroundColor3=Color3.fromRGB(60,45,10)
+    kbBtn.TextColor3=TXT
+end)
+
+-- Lắng nghe phím khi đang binding
+local UIS=game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(inp, gpe)
+    if binding and inp.UserInputType==Enum.UserInputType.Keyboard then
+        binding=false
+        boundKey=inp.KeyCode
+        local kname=tostring(inp.KeyCode):gsub("Enum.KeyCode.","")
+        kbBtn.Text=kname
+        kbBtn.BackgroundColor3=BG3
+        kbBtn.TextColor3=AMBER
+        return
+    end
+    if not binding and inp.UserInputType==Enum.UserInputType.Keyboard and inp.KeyCode==boundKey then
+        minimized=not minimized
+        if minimized then
+            WIN.Visible=false
+            toggleBtn.Visible=true
+        else
+            WIN.Visible=true
+            toggleBtn.Visible=false
+        end
+    end
+end)
+
+-- Toggle button nổi
+toggleBtn.MouseButton1Click:Connect(function()
+    minimized=false
+    WIN.Visible=true
+    toggleBtn.Visible=false
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+    minimized=not minimized
+    if minimized then
+        WIN.Size=miniH
+        TABS_BAR.Visible=false
+        CONT.Visible=false
+        minBtn.Text="▲"
+    else
+        WIN.Size=fullH
+        TABS_BAR.Visible=true
+        CONT.Visible=true
+        minBtn.Text="—"
+    end
+end)
 local function setSt(m) stBar.Text=tostring(m) end
 
 local TABS_BAR=Instance.new("Frame",WIN); TABS_BAR.Size=UDim2.new(1,-16,0,28); TABS_BAR.Position=UDim2.new(0,8,0,44); TABS_BAR.BackgroundTransparency=1
@@ -334,7 +438,7 @@ local bModArgs  =arBtn2("Mod Args",    Color3.fromRGB(18,55,30))
 local function genCode(entry)
     if not entry then return "-- no call selected" end
     local lines={
-        "-- Script generated by KelzaSpy",
+        "-- Script generated by Kelza SPY",
         "",
         "local args = {"
     }
